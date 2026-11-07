@@ -2,7 +2,7 @@
 export interface UserDataRegister {
     conferencia_id: number,
     nombre_conferencia: string
-    talla_camiseta_id: number,
+    talla_camiseta_id: number | null,
     nombre: string,
     apellidos: string,
     correo: string,
@@ -18,7 +18,7 @@ export interface UserDataRegister {
     pago_lunchtime: string
     pago_camiseta: string
     incluir_camisa: boolean,
-    alimento_especial_nota: string,
+    alimento_especial_nota: string | null,
     tipo_alimento: string
     contacto_emergencia: EmergencyData
 }

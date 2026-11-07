@@ -1,19 +1,28 @@
 import nodemailer from 'nodemailer';
 import { UserDataRegister } from '../interfaces/register.interface';
-import SMTPTransport from 'nodemailer/lib/smtp-transport';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import { env } from '../config/env';
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user: env.EMAIL_USER,
+        pass: env.EMAIL_PASS
     }
 });
 
+/** Escapa HTML: los datos vienen del formulario público. */
+const e = (value: unknown): string => String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 export const sendConfirmationMail = async (data: UserDataRegister) => {
+    if (!env.EMAIL_USER || !env.EMAIL_PASS) {
+        console.warn("[mail] EMAIL_USER/EMAIL_PASS no configurados; no se envía el correo.");
+        return false;
+    }
     try {
         const emergenciaTexto = `${data.contacto_emergencia.nombre_contacto || 'No especificado'} · ${data.contacto_emergencia.telefono_contacto || ''}`;
 
@@ -40,7 +49,7 @@ export const sendConfirmationMail = async (data: UserDataRegister) => {
                                 <strong style="color: #1e293b;">Nombre completo:</strong>
                             </td>
                             <td style="padding: 16px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; text-align: right;">
-                                ${data.nombre}  ${data.apellidos}
+                                ${e(data.nombre)}  ${e(data.apellidos)}
                             </td>
                         </tr>
                         
@@ -50,7 +59,7 @@ export const sendConfirmationMail = async (data: UserDataRegister) => {
                                 <strong style="color: #1e293b;">Conferencia:</strong>
                             </td>
                             <td style="padding: 16px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; text-align: right;">
-                                ${data.nombre_conferencia}
+                                ${e(data.nombre_conferencia)}
                             </td>
                         </tr>
 
@@ -60,7 +69,7 @@ export const sendConfirmationMail = async (data: UserDataRegister) => {
                                 <strong style="color: #1e293b;">Estado:</strong>
                             </td>
                             <td style="padding: 16px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; text-align: right;">
-                                ${data.nombre_estado}
+                                ${e(data.nombre_estado)}
                             </td>
                         </tr>
 
@@ -70,7 +79,7 @@ export const sendConfirmationMail = async (data: UserDataRegister) => {
                                 <strong style="color: #1e293b;">Iglesia:</strong>
                             </td>
                             <td style="padding: 16px 0; border-bottom: 1px solid #f1f5f9; color: #64748b; text-align: right;">
-                                ${data.iglesia}
+                                ${e(data.iglesia)}
                             </td>
                         </tr>
 
@@ -80,7 +89,7 @@ export const sendConfirmationMail = async (data: UserDataRegister) => {
                                 <strong style="color: #1e293b;">Contacto de emergencia:</strong>
                             </td>
                             <td style="padding: 16px 0; color: #64748b; text-align: right;">
-                                Relación: ${data.contacto_emergencia.relacion}, ${emergenciaTexto}
+                                Relación: ${e(data.contacto_emergencia.relacion)}, ${e(emergenciaTexto)}
                             </td>
                         </tr>
                     </table>
@@ -102,7 +111,7 @@ export const sendConfirmationMail = async (data: UserDataRegister) => {
         const correoDestino = data.correo || data.correo;
 
         const mailOptions = {
-            from: `FEJA 2026 ${process.env.EMAIL_USER}`,
+            from: `FEJA 2026 ${env.EMAIL_USER}`,
             to: correoDestino,
             subject: 'Confirmación de Registro - FEJA 2026 🎉',
             html: htmlTemplate
