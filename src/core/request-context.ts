@@ -2,14 +2,36 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { NextFunction, Request, Response } from 'express';
 import { ulid } from 'ulidx';
 
+import type { MembershipRole } from '../db/types';
+import type { Permission } from './permissions';
+
+export interface TenantInfo {
+    id: number;
+    slug: string;
+    name: string;
+    rootOrganizationId: number;
+}
+
+export interface AuthInfo {
+    userId: number;
+    name: string;
+    email: string;
+    isPlatformAdmin: boolean;
+    /** null solo para el admin de plataforma fuera de un cliente. */
+    role: MembershipRole | null;
+    /** Asociación/iglesia a la que está limitado (null = todo el cliente). */
+    scopeOrganizationId: number | null;
+    permissions: ReadonlySet<Permission>;
+}
+
 export interface RequestContext {
     requestId: string;
     ip?: string;
     userAgent?: string;
-    /** Se llenan en el Paso 3 (auth + tenant). */
-    userId?: number;
-    userName?: string;
-    tenantId?: number;
+    /** Cliente de la petición (X-Tenant / subdominio). */
+    tenant?: TenantInfo;
+    /** Usuario autenticado (V2). */
+    auth?: AuthInfo;
 }
 
 const storage = new AsyncLocalStorage<RequestContext>();

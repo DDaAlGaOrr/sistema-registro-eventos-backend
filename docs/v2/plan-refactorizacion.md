@@ -90,7 +90,7 @@ Se hace sobre el código actual porque estas piezas pasan casi tal cual a V2.
 Es la pieza de la que depende todo lo demás; va con pruebas desde el inicio.
 
 1. Middleware `resolveTenant` (Host → `tenant_domains`/`slug`) con caché.
-2. Auth: login, refresh, logout, `me` (devuelve rol, alcance y permisos), bloqueo tras intentos fallidos, invitación y recuperación de contraseña por correo.
+2. Auth: login, refresh, logout, `me` (devuelve rol, alcance y permisos), bloqueo tras intentos fallidos. ✅ Hecho. (Invitación y recuperación de contraseña se pasaron al Paso 4, junto con el envío de correos.)
 3. `requirePermission('payments.write')` y helper de alcance: si el usuario tiene alcance, toda consulta de registros agrega `conference_organization_id IN (subárbol)`.
 4. Repositorios que **exigen** `tenantId` (no se puede consultar sin él).
 5. `audit.record(trx, {...})` + helper `diff(antes, después)`; se llama dentro de la transacción del cambio.
@@ -99,7 +99,7 @@ Es la pieza de la que depende todo lo demás; va con pruebas desde el inicio.
 ## Paso 4 — Administración básica
 
 1. Organizaciones: árbol del cliente; iglesias pendientes → aprobar, editar o fusionar (al fusionar se reasignan los registros y se audita).
-2. Usuarios del cliente: invitar, cambiar rol/alcance, desactivar.
+2. Usuarios del cliente: invitar (correo con enlace), recuperar contraseña, cambiar rol/alcance, desactivar.
 3. Eventos: CRUD, estados draft/published/closed/archived, zona horaria.
 4. Marca del cliente: logo, colores, remitente.
 

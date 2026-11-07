@@ -4,11 +4,32 @@ import helmet from 'helmet';
 import { pinoHttp } from 'pino-http';
 import { sql } from 'kysely';
 import { env } from './config/env';
+import cookieParser from 'cookie-parser';
 import { router } from './routes';
+import { routerV2 } from './routes/v2';
 import { catchAsync, errorHandler, notFoundHandler } from './middlewares/errorHandler';
 import { getContext, requestContextMiddleware } from './core/request-context';
 import { logger, sanitizeUrl } from './core/logger';
 import { db } from './db/client';
+
+/**
+ * Orígenes permitidos: la lista de CORS_ORIGINS y cualquier subdominio de
+ * los dominios base (cada cliente tiene el suyo: pacific.tuapp.com).
+ * Peticiones sin Origin (curl, health checks, server-to-server) pasan.
+ */
+export function isAllowedOrigin(origin: string | undefined): boolean {
+    if (!origin) return true;
+    if (env.CORS_ORIGINS.includes(origin)) return true;
+    try {
+        const { hostname, protocol } = new URL(origin);
+        const isLocal = hostname === 'localhost' || hostname.endsWith('.localhost');
+        // Fuera de localhost solo HTTPS
+        if (protocol !== 'https:' && !(protocol === 'http:' && isLocal)) return false;
+        return env.APP_BASE_DOMAINS.some(base => hostname === base || hostname.endsWith(`.${base}`));
+    } catch {
+        return false;
+    }
+}
 
 /** Crea la app sin levantar el servidor (las pruebas la usan directo). */
 export function createApp(): Express {
@@ -32,16 +53,13 @@ export function createApp(): Express {
 
     app.use(helmet());
     app.use(cors({
-        origin: (origin, callback) => {
-            // Peticiones sin Origin (curl, health checks, server-to-server)
-            if (!origin || env.CORS_ORIGINS.includes(origin)) {
-                return callback(null, true);
-            }
-            return callback(null, false);
-        },
+        origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
+        // La cookie del refresh token (V2) necesita credentials
+        credentials: true,
         exposedHeaders: ['X-Request-Id'],
     }));
     app.use(express.json({ limit: '100kb' }));
+    app.use(cookieParser());
 
     app.get('/test', (req: Request, res: Response) => {
         res.json({
@@ -55,6 +73,7 @@ export function createApp(): Express {
         return { code: 200, data: { api: 'up', db: 'up' } };
     }));
 
+    app.use('/api/v2', routerV2);
     app.use('/api', router);
 
     app.use(notFoundHandler);
