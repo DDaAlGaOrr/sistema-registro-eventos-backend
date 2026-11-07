@@ -1,6 +1,6 @@
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { Request, Response } from 'express';
-import { catchAsync, AppError } from '../middlewares/errorHandler';
+import { catchAsync, AppError, parseId } from '../middlewares/errorHandler';
 import * as generalModel from '../model/general.model'
 
 export const getConferences = catchAsync(async (req, res) => {
@@ -8,7 +8,7 @@ export const getConferences = catchAsync(async (req, res) => {
     if (!id) {
         throw new AppError(400, 'El campo id es necesario');
     }
-    const conferenceId = parseInt(id as string, 10);
+    const conferenceId = parseId(id);
     const result = await generalModel.getConferences(conferenceId)
     return {
         code: 200,
@@ -38,7 +38,7 @@ export const getResumen = catchAsync(async (req: AuthRequest, res: Response) => 
     if (!id) {
         throw new AppError(400, 'El campo id es necesario');
     }
-    const eventId = parseInt(id as string, 10);
+    const eventId = parseId(id);
     const totalRegistrados = await generalModel.totalRegistrados(eventId)
     const totalCheckin = await generalModel.totalCheckin(eventId)
     const totalCamisaPagada = await generalModel.totalCamisaPagada(eventId)
@@ -56,7 +56,7 @@ export const getResumen = catchAsync(async (req: AuthRequest, res: Response) => 
 });
 
 export const registersForMonthAndGenderChart = catchAsync(async (req: AuthRequest, res: Response) => {
-    const eventId = parseInt(req.params.id as string, 10);
+    const eventId = parseId(req.params.id);
 
     const rows = await generalModel.registersForMonthAndGender(eventId);
 
@@ -83,7 +83,7 @@ export const registersForMonthAndGenderChart = catchAsync(async (req: AuthReques
 });
 
 export const weeklyRegistrationsChart = catchAsync(async (req, res) => {
-    const eventId = parseInt(req.params.id as string, 10);
+    const eventId = parseId(req.params.id);
 
     const rows = await generalModel.weeklyRegistrations(eventId);
 
@@ -108,7 +108,7 @@ export const weeklyRegistrationsChart = catchAsync(async (req, res) => {
 });
 
 export const getTshirtSizesChart = catchAsync(async (req, res) => {
-    const eventId = parseInt(req.params.id as string, 10);
+    const eventId = parseId(req.params.id);
 
     const rows = await generalModel.registersSizes(eventId);
 

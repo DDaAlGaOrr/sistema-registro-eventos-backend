@@ -1,9 +1,10 @@
-import { PayData, UserDataRegister } from '../interfaces/register.interface';
-import { catchAsync, AppError } from '../middlewares/errorHandler';
+import { UserDataRegister } from '../interfaces/register.interface';
+import { catchAsync, AppError, parseId } from '../middlewares/errorHandler';
 import { AuthRequest } from '../middlewares/auth.middleware';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { sendConfirmationMail } from '../services/mail.service';
-import { logAdminAction } from '../services/log.service';
+import { EDITABLE_FIELDS_BY_ROLE } from '../config/roles';
+import { paymentSchema, registerSchema, updateRegisterSchema } from '../validators/register.schema';
 import * as eventModel from '../model/event.model'
 
 let clients: Response[] = [];
@@ -18,12 +19,11 @@ export const getEvents = catchAsync(async (req, res) => {
 
 
 export const getEventById = catchAsync(async (req, res) => {
-    const { id } = req.params;
-    if (!id) {
-        throw new AppError(400, 'El campo id es necesario');
-    }
-    const eventId = parseInt(id as string, 10);
+    const eventId = parseId(req.params.id);
     const result = await eventModel.getEventById(eventId)
+    if (!result[0]) {
+        throw new AppError(404, 'Evento no encontrado');
+    }
     return {
         code: 200,
         data: result[0]
@@ -33,11 +33,20 @@ export const getEventById = catchAsync(async (req, res) => {
 
 
 export const saveUserRegister = catchAsync(async (req, res) => {
-    const eventId = parseInt(req.params.id as string, 10);
-    const data = req.body as UserDataRegister;
-    data.pago_camiseta = data.incluir_camisa ? 'pendiente' : 'no_aplica';
-    data.pago_lunchtime = data.incluir_lunchtime ? 'pendiente' : 'no_aplica';
-    data.tipo_alimento = data.incluir_lunchtime ? data.tipo_alimento : 'normal';
+    const eventId = parseId(req.params.id);
+    const input = registerSchema.parse(req.body);
+
+    const [event] = await eventModel.getEventById(eventId);
+    if (!event || !event.activo) {
+        throw new AppError(404, 'Evento no encontrado o cerrado');
+    }
+
+    const data: UserDataRegister = {
+        ...input,
+        pago_camiseta: input.incluir_camisa ? 'pendiente' : 'no_aplica',
+        pago_lunchtime: input.incluir_lunchtime ? 'pendiente' : 'no_aplica',
+        tipo_alimento: input.incluir_lunchtime ? (input.tipo_alimento ?? 'normal') : 'normal',
+    };
     const result = await eventModel.saveUserRegister(data, eventId)
 
 
@@ -51,10 +60,9 @@ export const saveUserRegister = catchAsync(async (req, res) => {
 
     emitNewRegistration(activityData);
 
-    if (data.correo && data.nombre) {
-        sendConfirmationMail(data)
-            .catch(err => console.error('Fallo al enviar el correo:', err));
-    }
+    sendConfirmationMail(data)
+        .catch(err => console.error('Fallo al enviar el correo:', err));
+
     return {
         code: 200,
         data: result
@@ -62,11 +70,7 @@ export const saveUserRegister = catchAsync(async (req, res) => {
 });
 
 export const getEventRegistrations = catchAsync(async (req, res) => {
-    const { id } = req.params;
-    if (!id) {
-        throw new AppError(400, 'El campo id es necesario');
-    }
-    const eventId = parseInt(id as string, 10);
+    const eventId = parseId(req.params.id);
     const registrations = await eventModel.getEventRegistrations(eventId)
     return {
         code: 200,
@@ -75,23 +79,20 @@ export const getEventRegistrations = catchAsync(async (req, res) => {
 });
 
 export const getRegistration = catchAsync(async (req, res) => {
-    const { id } = req.params;
-    if (!id) {
-        throw new AppError(400, 'El campo id es necesario');
-    }
-    const registerId = parseInt(id as string, 10);
+    const registerId = parseId(req.params.id);
     const registration = await eventModel.getRegistration(registerId)
+    if (!registration) {
+        throw new AppError(404, 'Registro no encontrado');
+    }
     return {
         code: 200,
-        data: registration[0]
+        data: registration
     };
 });
 
 export const checkIn = catchAsync(async (req: AuthRequest, res: Response) => {
-    const registerId = parseInt(req.params.id as string, 10);
-    const adminId = req.user.id;
-    await eventModel.checkIn(registerId, adminId);
-    await logAdminAction(adminId, 'CHECK_IN', registerId);
+    const registerId = parseId(req.params.id);
+    await eventModel.checkIn(registerId, req.user!.id);
     return {
         code: 200,
         data: { message: 'Check-in realizado con éxito' }
@@ -99,23 +100,14 @@ export const checkIn = catchAsync(async (req: AuthRequest, res: Response) => {
 });
 
 export const updatePaymentRegister = catchAsync(async (req: AuthRequest, res: Response) => {
-    const authReq = req as AuthRequest;
+    const registerId = parseId(req.params.id);
+    const data = paymentSchema.parse(req.body);
 
-    const registerId = parseInt(req.params.id as string, 10);
-    const adminId = authReq.user.id;
-    const data = req.body as PayData;
-
-    if (!['camiseta', 'lunchtime'].includes(data.concepto)) {
-        return {
-            code: 400,
-            data: { message: 'Concepto de pago no válido' }
-        };
-    }
-    await logAdminAction(adminId, 'UPDATE_PAYMENT', registerId, {
+    await eventModel.updatePaymentRegister(registerId, req.user!.id, {
         concepto: data.concepto,
-        nuevo_estatus: data.estatus_nuevo
+        estatus_nuevo: data.estatus_nuevo,
+        notas: data.notas ?? undefined,
     });
-    await eventModel.updatePaymentRegister(registerId, adminId, data);
 
     return {
         code: 200,
@@ -125,20 +117,8 @@ export const updatePaymentRegister = catchAsync(async (req: AuthRequest, res: Re
 
 
 export const removeRegister = catchAsync(async (req: AuthRequest, res: Response) => {
-    const authReq = req as AuthRequest;
-    const registerId = parseInt(req.params.id as string, 10);
-    const registration = await eventModel.getRegistration(registerId)
-    const adminId = authReq.user.id;
-    if (!registration) {
-        return {
-            code: 200,
-            data: { message: 'Registro no encontrado' }
-        };
-    }
-    await eventModel.removeRegister(registerId);
-    await logAdminAction(adminId, 'DELETE_REGISTER', registerId, {
-        nombre_eliminado: registration.nombre
-    });
+    const registerId = parseId(req.params.id);
+    await eventModel.removeRegister(registerId, req.user!.id);
     return {
         code: 200,
         data: { message: 'registro eliminado' }
@@ -147,12 +127,17 @@ export const removeRegister = catchAsync(async (req: AuthRequest, res: Response)
 
 
 export const updateRegister = catchAsync(async (req: AuthRequest, res: Response) => {
-    const registerId = parseInt(req.params.id as string, 10);
-    const authReq = req as AuthRequest;
-    const data = req.body as any;
-    const adminId = authReq.user.id;
-    await eventModel.updateRegister(data, registerId, adminId)
-    await logAdminAction(adminId, 'UPDATE_REGISTER', registerId, data);
+    const registerId = parseId(req.params.id);
+    const data = updateRegisterSchema.parse(req.body ?? {});
+
+    // Cada rol solo puede tocar ciertos campos (ej. staff no cambia pagos)
+    const allowed: readonly string[] = EDITABLE_FIELDS_BY_ROLE[req.user!.role] ?? [];
+    const forbidden = Object.keys(data).filter(field => !allowed.includes(field));
+    if (forbidden.length > 0) {
+        throw new AppError(403, `Tu rol no puede modificar: ${forbidden.join(', ')}`, { fields: forbidden });
+    }
+
+    await eventModel.updateRegister(data, registerId, req.user!.id)
     return {
         code: 200,
         data: { message: 'registro actualizado' }
@@ -163,15 +148,19 @@ export const stream = catchAsync(async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
     clients.push(res);
 
+    // Mantiene viva la conexión detrás de proxies que cortan conexiones inactivas
+    const heartbeat = setInterval(() => res.write(': ping\n\n'), 25000);
 
     req.on('close', () => {
+        clearInterval(heartbeat);
         clients = clients.filter(client => client !== res);
     });
 })
 export const recentActivity = catchAsync(async (req, res) => {
-    const eventId = parseInt(req.params.id as string, 10);
+    const eventId = parseId(req.params.id);
     const registers = await eventModel.lastRegisters(eventId);
     return {
         code: 200,
@@ -187,8 +176,8 @@ export const emitNewRegistration = (newRecord: any) => {
 
 
 export const wasFoodPaid = catchAsync(async (req: AuthRequest, res: Response) => {
-    const registerId = parseInt(req.params.id as string, 10);
-    const wasFoodPaid =  await eventModel.wasFoodPaid(registerId)
+    const registerId = parseId(req.params.id);
+    const wasFoodPaid = await eventModel.wasFoodPaid(registerId)
     return {
         code: 200,
         data: wasFoodPaid

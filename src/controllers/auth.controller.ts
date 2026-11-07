@@ -1,35 +1,29 @@
+import { z } from 'zod';
 import { catchAsync, AppError } from '../middlewares/errorHandler';
+import { AuthRequest } from '../middlewares/auth.middleware';
 import * as authService from '../services/auth.service'
 
-export const login = catchAsync(async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Email y password son obligatorios' });
-    }
-    const result = await authService.login(email, password);
-    if (result) {
-        return {
-            code: 200,
-            data: result
-        };
-    } else {
-        return {
-            code: 400,
-            data: result
-        };
-    }
+const loginSchema = z.object({
+    email: z.string().trim().min(1, 'Email y password son obligatorios').max(150),
+    password: z.string().min(1, 'Email y password son obligatorios').max(200),
 });
 
-
-export const me = catchAsync(async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Token requerido' });
+export const login = catchAsync(async (req, res) => {
+    const { email, password } = loginSchema.parse(req.body ?? {});
+    const result = await authService.login(email, password);
+    if (!result) {
+        throw new AppError(401, 'Credenciales incorrectas');
     }
-    const token = authHeader.split(' ')[1];
-    const user = await authService.verifyToken(token);
     return {
         code: 200,
-        data: user
+        data: result
+    };
+});
+
+// La ruta usa requireAuth, así que aquí el token ya está verificado.
+export const me = catchAsync(async (req: AuthRequest, res) => {
+    return {
+        code: 200,
+        data: req.user
     };
 });

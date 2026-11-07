@@ -183,7 +183,12 @@ function normalizarIglesia(nombreCrudo: string): string {
     if (nombre.includes('peoria')) return 'Peoria Spanish';
     if (nombre.includes('west valley')) return 'West Valley';
     if (nombre.includes('san luis')) return 'San Luis AZ';
-    if (nombre.includes('paradise') || nombre.includes('paraiso')) return 'Paradise SDA';
+    if (nombre.includes('paraiso') || nombre.includes('paraíso')) {
+        return 'Paraíso SDA'; 
+    }
+    if (nombre.includes('paradise')) {
+        return 'Paradise Valley SDA'; 
+    }
     if (nombre.includes('faro')) return 'Faro del Este';
     if (nombre.includes('napa')) return 'Napa Valley';
     if (nombre.includes('mountain view')) return 'Mountain View Hispana';
