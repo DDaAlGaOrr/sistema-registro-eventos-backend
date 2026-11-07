@@ -17,6 +17,16 @@ export const loginLimiter = rateLimit({
     message: limitMessage('Demasiados intentos de inicio de sesión. Intenta de nuevo en 15 minutos.'),
 });
 
+/** Recuperar contraseña / aceptar invitación: evita usarlo para spam o adivinar tokens. */
+export const accountLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    skip,
+    message: limitMessage('Demasiadas solicitudes. Intenta de nuevo en 15 minutos.'),
+});
+
 /**
  * Registro público. Es generoso a propósito: un líder puede registrar
  * a varios jóvenes desde el mismo teléfono o el wifi de la iglesia.

@@ -51,6 +51,11 @@ const normalize = (value: unknown): unknown => {
     if (value instanceof Date) return value.toISOString();
     if (Buffer.isBuffer(value)) return value.toString('hex');
     if (value === undefined) return null;
+    if (Array.isArray(value)) return value.map(normalize);
+    if (value && typeof value === 'object') {
+        // MySQL reordena las llaves de los JSON; MariaDB no. Comparar sin importar el orden.
+        return Object.fromEntries(Object.keys(value).sort().map(k => [k, normalize((value as any)[k])]));
+    }
     return value;
 };
 

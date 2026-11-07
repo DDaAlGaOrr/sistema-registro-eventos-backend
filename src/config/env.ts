@@ -45,6 +45,12 @@ const envSchema = z.object({
     // Bloqueo de cuenta por intentos fallidos
     LOGIN_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
     LOGIN_LOCK_MINUTES: z.coerce.number().int().positive().default(15),
+
+    // URL del Front de cada cliente para los enlaces de los correos.
+    // {slug} se reemplaza por el slug del cliente (o PLATFORM_SUBDOMAIN).
+    FRONT_URL_TEMPLATE: z.string().default('http://{slug}.localhost:4200'),
+    INVITE_TTL_DAYS: z.coerce.number().int().positive().default(7),
+    PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(60),
 });
 
 const parsed = envSchema.safeParse(process.env);
