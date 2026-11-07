@@ -8,5 +8,6 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,                    /* Habilita chequeos estrictos de TS */
     "skipLibCheck": true               /* Evita revisar los tipos de node_modules (mejora el rendimiento) */
-  }
+  },
+  "include": ["src"]
 }

@@ -1,41 +1,22 @@
 import { env } from './config/env';
-import express, { Express, Request, Response } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import { router } from './routes';
-import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
+import { createApp } from './app';
+import { logger } from './core/logger';
+import { destroyDb } from './db/client';
 
-const app: Express = express();
-const port = env.PORT;
+const app = createApp();
 
-// Railway (y la mayoría de hostings) ponen un proxy enfrente:
-// necesario para que el rate limit vea la IP real del cliente.
-app.set('trust proxy', 1);
+const server = app.listen(env.PORT, () => {
+    logger.info(`[server]: El servidor está corriendo en http://localhost:${env.PORT}`);
+});
 
-app.use(helmet());
-app.use(cors({
-    origin: (origin, callback) => {
-        // Peticiones sin Origin (curl, health checks, server-to-server)
-        if (!origin || env.CORS_ORIGINS.includes(origin)) {
-            return callback(null, true);
-        }
-        return callback(null, false);
-    },
-}));
-app.use(express.json({ limit: '100kb' }));
-
-app.get('/test', (req: Request, res: Response) => {
-    res.json({
-        message: '¡Hola, mundo!',
-        status: 'success'
+// Cierre ordenado (Railway manda SIGTERM al redeployar)
+const shutdown = (signal: string) => {
+    logger.info(`${signal} recibido, cerrando servidor...`);
+    server.close(async () => {
+        await destroyDb().catch(() => undefined);
+        process.exit(0);
     });
-});
-
-app.use('/api', router);
-
-app.use(notFoundHandler);
-app.use(errorHandler);
-
-app.listen(port, () => {
-    console.log(`[server]: El servidor está corriendo en http://localhost:${port}`);
-});
+    setTimeout(() => process.exit(1), 10_000).unref();
+};
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

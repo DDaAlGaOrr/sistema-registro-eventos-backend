@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { ZodError } from 'zod';
+import { logger } from '../core/logger';
+import { getContext } from '../core/request-context';
 
 export class AppError extends Error {
     constructor(
@@ -50,10 +52,12 @@ export const errorHandler = (
         return res.status(413).json({ status: 'error', message: 'El cuerpo de la petición es demasiado grande' });
     }
 
-    console.error(err);
+    const requestId = getContext()?.requestId;
+    logger.error({ err, requestId }, 'Error no controlado');
     return res.status(500).json({
         status: 'error',
         message: 'Internal server error',
+        requestId,
     });
 };
 

@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const DEFAULT_CORS_ORIGINS = 'http://localhost:4200,https://congreso-union.fesjaz.com';
 
@@ -24,6 +24,10 @@ const envSchema = z.object({
 
     // Orígenes permitidos para CORS, separados por coma
     CORS_ORIGINS: z.string().default(DEFAULT_CORS_ORIGINS),
+
+    LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+    // Logs legibles en consola (solo desarrollo; pino-pretty es devDependency)
+    LOG_PRETTY: z.enum(['true', 'false']).default('false').transform(v => v === 'true'),
 });
 
 const parsed = envSchema.safeParse(process.env);
