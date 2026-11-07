@@ -52,6 +52,47 @@ npm run dev
 - Las tablas de V1 (`registros`, `admins`, ...) conviven en la misma BD hasta
   que se retire V1; las de V2 tienen nombres distintos.
 
+## API V2 (`/api/v2`)
+
+Convive con V1 (`/api`) hasta que el Front migre.
+
+**Cliente (tenant).** Cada petición dice a qué cliente va, en este orden:
+header `X-Tenant: <slug>` → subdominio del `Origin` → subdominio del `Host`
+(`pacific.tuapp.com`; en local `pacific.localhost`). Solo identifica el
+cliente: lo que cada quien puede ver lo decide su membresía.
+
+**Sesión.**
+
+| Endpoint | Qué hace |
+|---|---|
+| `POST /api/v2/auth/login` | `{ email, password }` → `accessToken` (15 min) + cookie httpOnly `rt` |
+| `POST /api/v2/auth/refresh` | Con la cookie `rt` → nuevo access token; rota la cookie |
+| `POST /api/v2/auth/logout` | Invalida la cookie `rt` |
+| `GET /api/v2/auth/me` | Usuario, cliente, rol, permisos y alcance |
+
+El access token va en `Authorization: Bearer <token>`. Usuario y membresía
+se revisan en la BD en cada petición (quitar acceso aplica de inmediato).
+5 intentos fallidos bloquean la cuenta 15 min. Reusar un refresh token ya
+rotado cierra todas las sesiones del usuario.
+
+**Permisos** (`src/core/permissions.ts`): owner = todo; finance = lectura +
+pagos; staff = lectura, editar, borrar, check-in; viewer = lectura; admin de
+plataforma = todo en cualquier cliente.
+
+**Alcance** (`src/core/access-scope.ts`): un usuario limitado a una
+asociación ve los eventos de su asociación completos, los de la Unión solo
+con los registrados de su asociación, y no ve los de otras asociaciones.
+Los repositorios reciben un `TenantScope` obligatorio.
+
+**Auditoría** (`src/core/audit.ts`): `recordAudit(trx, {...})` toma cliente,
+usuario, IP, navegador y `request_id` del contexto; `diff(antes, después)`
+arma los cambios campo por campo.
+
+| Endpoint | Qué hace |
+|---|---|
+| `GET /api/v2/events` | Eventos que el usuario puede ver |
+| `GET /api/v2/events/:id/registrations?page&pageSize` | Registros paginados, filtrados por alcance |
+
 ## CI
 
 GitHub Actions corre typecheck, pruebas y build contra MariaDB 10.4, MySQL 8.4
