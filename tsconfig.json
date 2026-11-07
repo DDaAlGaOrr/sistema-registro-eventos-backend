@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",                /* Versión de JS a compilar */
+    "module": "CommonJS",              /* Sistema de módulos de Node */
+    "rootDir": "./src",                /* Carpeta donde está tu código TS */
+    "outDir": "./dist",                /* Carpeta donde se guardará el JS compilado */
+    "esModuleInterop": true,           /* Facilita la importación de módulos CommonJS */
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,                    /* Habilita chequeos estrictos de TS */
+    "skipLibCheck": true               /* Evita revisar los tipos de node_modules (mejora el rendimiento) */
+  }
+}
