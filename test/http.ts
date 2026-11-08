@@ -22,6 +22,7 @@ export const as = (app: Express, token: string, tenant?: string) => {
         get: (path: string) => wrap(request(app).get(`/api/v2${path}`)),
         post: (path: string, body?: object) => wrap(request(app).post(`/api/v2${path}`)).send(body ?? {}),
         patch: (path: string, body?: object) => wrap(request(app).patch(`/api/v2${path}`)).send(body ?? {}),
+        put: (path: string, body?: object) => wrap(request(app).put(`/api/v2${path}`)).send(body ?? {}),
         delete: (path: string) => wrap(request(app).delete(`/api/v2${path}`)),
     };
 };

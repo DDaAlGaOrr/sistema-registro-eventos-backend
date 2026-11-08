@@ -57,7 +57,7 @@ export async function getEventDetail(eventId: number): Promise<EventDetail> {
 }
 
 /** Además de verlo, el usuario debe poder administrar a quien lo organiza. */
-async function getManageableEvent(eventId: number): Promise<EventDetail> {
+export async function getManageableEvent(eventId: number): Promise<EventDetail> {
     const event = await getEventDetail(eventId);
     await assertManageableOrganization(event.organizer.id).catch(() => {
         throw new AppError(403, 'Solo puedes modificar eventos de tu asociación');

@@ -119,6 +119,43 @@ después. Un owner limitado a una asociación solo administra lo de su rama.
 | `PATCH /api/v2/platform/tenants/:id/status` | admin de plataforma | Activar / suspender |
 | `GET/POST /api/v2/platform/organizations` | admin de plataforma | Catálogo de uniones y asociaciones |
 
+**Formularios dinámicos** (Paso 5). La estructura vive en
+`form_versions.schema_json` (ver `src/modules/forms/form-schema.ts` y el
+Anexo A de `docs/v2/schema-propuesta.sql`):
+
+```jsonc
+{ "steps": [ { "key": "personal", "title": { "es": "...", "en": "..." }, "fields": [
+  { "key": "first_name", "type": "text", "maps_to": "first_name", "required": true, "label": { "es": "Nombre", "en": "First name" } },
+  { "key": "wants_tshirt", "type": "item_toggle", "item": "tshirt", "label": { ... } },
+  { "key": "tshirt_size", "type": "item_variant", "item": "tshirt", "required": true,
+    "visible_when": { "field": "wants_tshirt", "equals": true }, "label": { ... } }
+] } ] }
+```
+
+- Tipos: `text`, `textarea`, `email`, `phone`, `number`, `date`, `checkbox`,
+  `consent`, `radio`, `select`, `checkbox_group`, y de sistema
+  `state_conference_picker`, `church_picker`, `item_toggle`, `item_variant`.
+- `maps_to` llena columnas de `registrations` (`first_name`, `last_name`,
+  `email`, `phone`, `birth_date`, `gender`); el resto va a `answers`.
+- `visible_when` (`equals` / `not_equals` / `in`) solo puede depender de un
+  campo anterior. Un campo oculto se ignora y no se exige.
+- Para publicar: nombre, apellidos y correo obligatorios y siempre visibles.
+- Versiones: se edita un borrador; publicar lo vuelve inmutable y la versión
+  anterior queda `superseded`. Cada registro guarda con qué versión se llenó.
+
+| Endpoint | Permiso | Qué hace |
+|---|---|---|
+| `GET/POST /api/v2/events/:id/forms` | lectura / forms.manage | Formularios del evento / crear (deja borrador v1) |
+| `GET /api/v2/forms/:id` | lectura | Configuración, productos, versión publicada y borrador |
+| `PATCH /api/v2/forms/:id` | forms.manage | Título, apertura/cierre, cupo, pagos (`paymentsEnabled`, `allowOnlinePayment`, `allowOfflinePayment`), mensaje de confirmación |
+| `POST /api/v2/forms/:id/status` | forms.manage | draft → open → closed (abrir requiere versión publicada y evento publicado) |
+| `PUT /api/v2/forms/:id/draft` | forms.manage | `{ schema }` guarda el borrador; responde `publishIssues` |
+| `POST /api/v2/forms/:id/publish` | forms.manage | Publica el borrador (auditoría con campos agregados/quitados/cambiados) |
+| `GET /api/v2/forms/:id/versions[/:versionId]` | lectura | Historial de versiones |
+| `POST /api/v2/forms/:id/preview-answers` | forms.manage | Prueba respuestas contra el borrador o la publicada |
+| `POST/PATCH /api/v2/forms/:id/items[/:itemId]` | forms.manage | Cuota de inscripción y productos (precio en centavos) |
+| `PUT /api/v2/forms/:id/items/:itemId/variants` | forms.manage | Tallas: crea/actualiza por código; las que faltan se desactivan |
+
 **Correos.** Sin `EMAIL_USER`/`EMAIL_PASS` no se envían: el contenido (con el
 enlace) se escribe en el log, para probar invitaciones en local. Los enlaces
 apuntan a `FRONT_URL_TEMPLATE`. En `email_messages` queda el registro de cada
