@@ -105,7 +105,7 @@ Es la pieza de la que depende todo lo demás; va con pruebas desde el inicio.
 5. Panel de plataforma: alta de clientes (invita a su owner), suspender, catálogo de uniones y asociaciones.
 6. Pendiente para cuando un cliente pida dominio propio: CORS para `tenant_domains` y `TRUST_PROXY` configurable (rewrite de Vercel).
 
-## Paso 5 — Formularios dinámicos (API)
+## Paso 5 — Formularios dinámicos (API) ✅ Hecho
 
 1. Meta-esquema Zod que valida `schema_json` (tipos de campo, `{es,en}` obligatorios, `visible_when` apuntando a campos existentes, `item` apuntando a `form_items` existentes).
 2. CRUD de formularios, ítems y variantes; precios en centavos.
