@@ -156,6 +156,31 @@ Anexo A de `docs/v2/schema-propuesta.sql`):
 | `POST/PATCH /api/v2/forms/:id/items[/:itemId]` | forms.manage | Cuota de inscripción y productos (precio en centavos) |
 | `PUT /api/v2/forms/:id/items/:itemId/variants` | forms.manage | Tallas: crea/actualiza por código; las que faltan se desactivan |
 
+**Registro público** (Paso 6). Sin sesión, dentro del cliente de la petición.
+
+| Endpoint | Qué hace |
+|---|---|
+| `GET /api/v2/public/events/:slug` | Evento publicado/cerrado y sus formularios con disponibilidad (`open`, `not_open_yet`, `closed`, `full`) |
+| `GET /api/v2/public/forms/:id` | Versión publicada, productos activos (precio final, `soldOut`) y opciones de pago |
+| `GET /api/v2/public/locations` | Estados → asociaciones del cliente |
+| `GET /api/v2/public/conferences/:id/churches` | Iglesias verificadas de una asociación |
+| `POST /api/v2/public/forms/:id/registrations` | `{ answers, locale, paymentMethod?, captchaToken? }` → `publicCode` |
+| `GET /api/v2/public/registrations/:publicCode` | Página de confirmación (sin correo ni teléfono) |
+
+- Cupo y existencias se revisan con bloqueo de fila: con registros simultáneos
+  nunca se pasa del límite.
+- "Mi iglesia no está" crea una iglesia pendiente (o reutiliza la pendiente
+  escrita igual); no aparece en la lista pública hasta que se apruebe.
+- La misma persona (nombre + apellidos + correo) no se registra dos veces en
+  el evento; hermanos con el mismo correo sí.
+- La cuota de inscripción obligatoria se agrega sola; los precios quedan
+  congelados en el registro.
+- El correo de confirmación (con QR = `publicCode`, para el check-in) va a
+  una bandeja en `email_messages`; un proceso en segundo plano lo envía cada
+  `EMAIL_QUEUE_INTERVAL_SECONDS` y lo reintenta hasta 5 veces.
+- Captcha opcional con Cloudflare Turnstile (`TURNSTILE_SECRET_KEY`).
+- El pago en línea responde "todavía no disponible" hasta el Paso 8 (Stripe).
+
 **Correos.** Sin `EMAIL_USER`/`EMAIL_PASS` no se envían: el contenido (con el
 enlace) se escribe en el log, para probar invitaciones en local. Los enlaces
 apuntan a `FRONT_URL_TEMPLATE`. En `email_messages` queda el registro de cada

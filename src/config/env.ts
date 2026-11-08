@@ -51,6 +51,11 @@ const envSchema = z.object({
     FRONT_URL_TEMPLATE: z.string().default('http://{slug}.localhost:4200'),
     INVITE_TTL_DAYS: z.coerce.number().int().positive().default(7),
     PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(60),
+
+    // Bandeja de correos: cada cuántos segundos se procesa
+    EMAIL_QUEUE_INTERVAL_SECONDS: z.coerce.number().int().positive().default(15),
+    // Captcha del registro público (Cloudflare Turnstile). Vacío = sin captcha.
+    TURNSTILE_SECRET_KEY: z.string().optional().transform(v => v || undefined),
 });
 
 const parsed = envSchema.safeParse(process.env);
