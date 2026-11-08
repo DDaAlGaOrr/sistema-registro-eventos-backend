@@ -188,6 +188,10 @@ Un solo componente de edición de registro (hoy está copiado en Registrados y C
 
 Va al final a propósito: mientras tanto, el formulario de FEJA migrado (y los de prueba) se cargan como JSON.
 
+**Avance (se entrega en dos partes):**
+- **12a ✅ Editor de pasos y campos.** Lista de formularios del evento y creación; editor con pasos y campos (arrastrar y soltar con Angular CDK y botones), propiedades con etiquetas y ayudas en español e inglés, claves automáticas (bloqueadas si ya estaban publicadas), opciones, validaciones, "dato de la persona" (maps_to), condición "mostrar si…" solo hacia campos anteriores, vista previa con el mismo motor del formulario público, guardar borrador, aviso de lo que falta y publicar con el aviso de cuántos registros usan la versión anterior. Pide confirmación al salir con cambios sin guardar.
+- **12b ⏳ Productos y variantes (precio, tallas, existencias), ajustes del formulario (fechas, cupo, pagos, mensaje de confirmación, abrir/cerrar) y edición de las respuestas del formulario desde el panel del registro.**
+
 ## Paso 13 — Configuración del cliente (Front)
 
 Usuarios y roles, moderación de iglesias, marca, conexión con Stripe.
