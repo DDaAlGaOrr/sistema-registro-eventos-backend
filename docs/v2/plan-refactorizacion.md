@@ -173,6 +173,11 @@ Es la pieza de la que depende todo lo demás; va con pruebas desde el inicio.
 
 Un solo componente de edición de registro (hoy está copiado en Registrados y Check-in).
 
+**Avance (se entrega en tres partes):**
+- **11a ✅ Resumen y Registros.** Resumen con KPIs, gráficas y actividad en vivo; Registros con filtros, paginación en servidor, exportación CSV y panel lateral (datos editables, respuestas con sus etiquetas, productos/entregas/talla, pagos, historial, papelera). El panel (`registration-panel`) es el componente único que reutilizará Check-in.
+- **11b ⏳ Check-in y Logística.**
+- **11c ⏳ Pagos (registrar pago manual y reembolsos desde la vista y desde el panel) y Auditoría.**
+
 ## Paso 12 — Constructor de formularios (Front)
 
 1. Lista de pasos y campos con arrastrar y soltar (Angular CDK).
