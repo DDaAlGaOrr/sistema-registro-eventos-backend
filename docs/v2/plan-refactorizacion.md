@@ -176,7 +176,7 @@ Un solo componente de edición de registro (hoy está copiado en Registrados y C
 **Avance (se entrega en tres partes):**
 - **11a ✅ Resumen y Registros.** Resumen con KPIs, gráficas y actividad en vivo; Registros con filtros, paginación en servidor, exportación CSV y panel lateral (datos editables, respuestas con sus etiquetas, productos/entregas/talla, pagos, historial, papelera). El panel (`registration-panel`) es el componente único que reutilizará Check-in.
 - **11b ✅ Check-in y Logística.** Check-in pensado para celular: escáner QR (cámara), búsqueda por nombre/código, ficha con saldo pendiente, entregas y registro de entrada, con aviso de "ya hizo check-in" o cancelado. Logística: totales por producto y talla (pagado / sin pagar / entregado / por entregar), respuestas con opciones (dieta) y CSV para proveedor o lista de personas por producto/talla.
-- **11c ⏳ Pagos (registrar pago manual y reembolsos desde la vista y desde el panel) y Auditoría.**
+- **11c ✅ Pagos y Auditoría.** Pagos: totales (cobrado, reembolsado, neto), movimientos con filtros, lista de lo que falta por cobrar (con CSV) y, desde el panel del registro, registrar pago manual (por productos), anular y reembolsar total o parcial. Auditoría: filtros por acción, persona y fechas, detalle de cada cambio y acceso al registro. Con esto el Paso 11 queda completo.
 
 ## Paso 12 — Constructor de formularios (Front)
 
