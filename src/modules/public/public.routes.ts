@@ -6,7 +6,7 @@ import { verifyCaptcha } from '../../core/captcha';
 import { getContext } from '../../core/request-context';
 import { requireTenant } from '../tenants/tenant.resolver';
 import { kickEmailWorker } from '../email/email-queue';
-import { createPublicRegistration, getPublicRegistration } from '../registrations/public-registration.service';
+import { createPublicRegistration, getPublicRegistration, retryCheckoutByCode } from '../registrations/public-registration.service';
 import { getPublicChurches, getPublicEvent, getPublicForm, getPublicLocations } from './public.service';
 
 const registrationSchema = z.object({
@@ -43,6 +43,12 @@ publicRoutesV2.post('/forms/:formId/registrations', registerLimiter, catchAsync(
     const result = await createPublicRegistration(parseId(req.params.formId, 'formId'), body);
     kickEmailWorker();
     return { code: 201, data: result };
+}));
+
+publicRoutesV2.post('/registrations/:publicCode/checkout', registerLimiter, catchAsync(async (req) => {
+    const code = String(req.params.publicCode);
+    if (!/^[0-9A-HJKMNP-TV-Z]{26}$/i.test(code)) throw new AppError(404, 'Registro no encontrado');
+    return { code: 200, data: await retryCheckoutByCode(code) };
 }));
 
 publicRoutesV2.get('/registrations/:publicCode', catchAsync(async (req) => {

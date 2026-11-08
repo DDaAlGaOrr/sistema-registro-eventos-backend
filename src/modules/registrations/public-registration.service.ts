@@ -24,6 +24,8 @@ import { allFields } from '../forms/form-schema';
 import { AnswerError, validateAnswers } from '../forms/answers';
 import { ItemView, loadItems, toSchemaItems } from '../forms/forms.service';
 import { availabilityOf, loadPublicForm } from '../public/public.service';
+import { chargeableAccount, startCheckout } from '../payments/stripe.service';
+import { stripeConfigured } from '../payments/provider';
 
 export interface PublicRegistrationInput {
     answers: Record<string, unknown>;
@@ -36,6 +38,8 @@ export interface PublicRegistrationResult {
     status: 'confirmed' | 'pending_payment';
     paymentStatus: 'not_required' | 'unpaid';
     paymentMethod: 'online' | 'offline' | null;
+    /** URL de Stripe Checkout cuando eligió pagar con tarjeta. */
+    checkoutUrl: string | null;
     totalCents: number;
     currency: string;
     items: { code: string; name: I18nText; variantCode: string | null; unitPriceCents: number }[];
@@ -109,9 +113,12 @@ export async function createPublicRegistration(formId: number, input: PublicRegi
         paymentMethod = input.paymentMethod ?? (allowed.length === 1 ? allowed[0] : null);
         if (!paymentMethod) throw new AppError(400, 'Elige cómo vas a pagar', { errors: [{ field: 'paymentMethod', code: 'required', message: 'Campo obligatorio' }] });
         if (!allowed.includes(paymentMethod)) throw new AppError(400, 'Ese método de pago no está disponible para este registro');
-        // El cobro en línea con Stripe llega en el Paso 8
-        if (paymentMethod === 'online') throw new AppError(409, 'El pago en línea todavía no está disponible; elige pagar en efectivo u otro método');
+        if (paymentMethod === 'online' && !(stripeConfigured() && await chargeableAccount(tenant.id))) {
+            throw new AppError(409, 'El pago en línea no está disponible por ahora; elige pagar en efectivo u otro método');
+        }
     }
+    // Con tarjeta queda "pendiente de pago" (aparta su lugar) hasta que Stripe confirme
+    const pendingOnline = paymentMethod === 'online';
 
     const core = v.core;
     if (!core.first_name || !core.last_name || !core.email) {
@@ -148,7 +155,7 @@ export async function createPublicRegistration(formId: number, input: PublicRegi
             conference_organization_id: conferenceId, church_organization_id: church.id, church_name_raw: church.rawName,
             first_name: core.first_name!, last_name: core.last_name!, email: core.email!, phone: core.phone ?? null,
             birth_date: core.birth_date ?? null, gender: (core.gender as 'male' | 'female' | 'undisclosed' | undefined) ?? null,
-            locale: input.locale, answers: toJson(answers), status: 'confirmed', payment_status: paymentStatus,
+            locale: input.locale, answers: toJson(answers), status: pendingOnline ? 'pending_payment' : 'confirmed', payment_status: paymentStatus,
             total_cents: totalCents, paid_cents: 0, checked_in_at: null, checked_in_by: null, checked_in_method: null,
             source: 'public_form', deleted_at: null, deleted_by: null,
         }).executeTakeFirstOrThrow()).insertId);
@@ -171,24 +178,51 @@ export async function createPublicRegistration(formId: number, input: PublicRegi
             },
         });
 
-        await trx.insertInto('email_messages').values({
-            tenant_id: tenant.id, registration_id: registrationId, template: 'registration_confirmation',
-            locale: input.locale, to_email: core.email!, status: 'queued', attempts: 0,
-            provider_message_id: null, last_error: null, sent_at: null,
-        }).execute();
+        // Con tarjeta, la confirmación se manda cuando Stripe avisa que se pagó
+        if (!pendingOnline) {
+            await trx.insertInto('email_messages').values({
+                tenant_id: tenant.id, registration_id: registrationId, template: 'registration_confirmation',
+                locale: input.locale, to_email: core.email!, status: 'queued', attempts: 0,
+                provider_message_id: null, last_error: null, sent_at: null,
+            }).execute();
+        }
 
-        return { publicCode, paymentStatus };
+        return { publicCode, paymentStatus, registrationId };
     });
+
+    let checkoutUrl: string | null = null;
+    if (pendingOnline) {
+        try {
+            checkoutUrl = (await startCheckout(saved.registrationId)).url;
+        } catch (err) {
+            // El registro queda apartado; puede reintentar el pago con su código
+            throw new AppError(502, 'Tu registro quedó guardado, pero no pudimos abrir el pago. Intenta pagar de nuevo.', {
+                reason: 'checkout_failed', publicCode: saved.publicCode,
+            });
+        }
+    }
 
     return {
         publicCode: saved.publicCode,
-        status: 'confirmed',
+        status: pendingOnline ? 'pending_payment' : 'confirmed',
         paymentStatus: saved.paymentStatus as 'not_required' | 'unpaid',
         paymentMethod,
+        checkoutUrl,
         totalCents,
         currency: form.currency,
         items: lines.map(l => ({ code: l.item.code, name: l.item.name, variantCode: l.variant?.code ?? null, unitPriceCents: l.unitPriceCents })),
     };
+}
+
+/** Pagar con tarjeta después (sesión vencida o registro hecho "en efectivo"). */
+export async function retryCheckoutByCode(publicCode: string) {
+    const tenant = getContext()?.tenant;
+    if (!tenant) throw new AppError(400, 'Falta indicar el cliente');
+    const r = await db.selectFrom('registrations').select('id')
+        .where('public_code', '=', publicCode.toUpperCase()).where('tenant_id', '=', tenant.id).where('deleted_at', 'is', null)
+        .executeTakeFirst();
+    if (!r) throw new AppError(404, 'Registro no encontrado');
+    return { checkoutUrl: (await startCheckout(r.id)).url };
 }
 
 /** Revisa existencias de las variantes con límite, bloqueándolas mientras tanto. */

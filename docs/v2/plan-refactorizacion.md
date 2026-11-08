@@ -133,7 +133,7 @@ Es la pieza de la que depende todo lo demás; va con pruebas desde el inicio.
 5. Exportación CSV/PDF desde el servidor (respeta alcance).
 6. Tiempo real: se eligió **consulta periódica** (`GET /events/:id/activity?after=`) en lugar de SSE: funciona igual detrás de los proxies de Vercel/Railway y no requiere mandar el token en la URL.
 
-## Paso 8 — Pagos (API)
+## Paso 8 — Pagos (API) ✅ Hecho
 
 1. Pagos manuales: finanzas registra efectivo/cheque/Zelle por conceptos → actualiza `registration_items` y totales, en una transacción auditada.
 2. Stripe Connect: endpoint de onboarding (Account Link) y retorno; webhook `account.updated` para `charges_enabled`.
