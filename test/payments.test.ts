@@ -59,7 +59,7 @@ const person = (o: Record<string, unknown> = {}) => ({
     first_name: 'Ana', last_name: `Pago ${uniq()}`, email: `pago-${uniq()}@example.test`, phone: '6025550101',
     birth_date: '2008-04-02', gender: 'female', location: { state: 'AZ', conference_id: s.orgs.az }, city: 'Phoenix',
     church: { church_id: azChurch }, is_chaperone: false, wants_tshirt: true, tshirt_size: 'M', wants_lunch: true, diet: 'vegan',
-    emergency_name: 'Mamá', emergency_phone: '6025550000', emergency_relationship: 'Madre', ...o,
+    emergency_name: 'Mamá', emergency_phone: '6025550000', emergency_relationship: 'padres', ...o,
 });
 
 async function register(paymentMethod: 'online' | 'offline' = 'offline', answers = person()) {
@@ -174,6 +174,14 @@ describe('cobro en línea', () => {
         expect(payment).toMatchObject({ method: 'stripe', status: 'pending', amount_cents: 600 });
         // La confirmación espera al pago
         expect(await db.selectFrom('email_messages').select('id').where('registration_id', '=', reg.id).executeTakeFirst()).toBeUndefined();
+    });
+
+    it('la confirmación ofrece pagar con tarjeta solo si falta pagar y Stripe está listo', async () => {
+        const { reg } = await register('offline');
+        const page = () => request(app).get(`/api/v2/public/registrations/${reg.public_code}`).set('X-Tenant', s.tenantA.slug);
+        expect((await page()).body.data.canPayOnline).toBe(true);
+        await finance.post(`/registrations/${reg.id}/payments`, { method: 'cash' });
+        expect((await page()).body.data.canPayOnline).toBe(false);
     });
 
     it('una firma inválida se rechaza', async () => {

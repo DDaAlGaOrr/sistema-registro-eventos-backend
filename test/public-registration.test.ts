@@ -65,7 +65,7 @@ const person = (overrides: Record<string, unknown> = {}) => ({
     birth_date: '2008-04-02', gender: 'female',
     location: { state: 'AZ', conference_id: s.orgs.az }, city: 'Phoenix', church: { church_id: church.id },
     is_chaperone: false, wants_tshirt: true, tshirt_size: 'M', wants_lunch: true, diet: 'vegan',
-    emergency_name: 'Mamá', emergency_phone: '6025550000', emergency_relationship: 'Madre',
+    emergency_name: 'Mamá', emergency_phone: '6025550000', emergency_relationship: 'padres',
     ...overrides,
 });
 
@@ -74,6 +74,25 @@ const register = (formId: number, answers: Record<string, unknown>, extra: Recor
         .send({ answers, locale: 'es', ...extra });
 
 describe('lectura pública', () => {
+    it('inicio del cliente: lista sus eventos publicados con disponibilidad y el formulario abierto', async () => {
+        const { formId, slug } = await openFejaForm();
+        const draft = await owner.post('/events', {
+            slug: `oculto-${uniq()}`, name: t('Borrador'), startsAt: '2027-01-01T00:00:00Z', endsAt: '2027-01-02T00:00:00Z', timezone: 'UTC',
+        });
+        const res = await request(app).get('/api/v2/public/events').set('X-Tenant', s.tenantA.slug);
+        expect(res.status).toBe(200);
+        const mine = res.body.data.find((e: any) => e.slug === slug);
+        expect(mine).toMatchObject({ availability: 'open', openFormId: formId, status: 'published' });
+        expect(res.body.data.map((e: any) => e.slug)).not.toContain(draft.body.data.slug);
+        // Otro cliente no ve los eventos de este
+        const other = await request(app).get('/api/v2/public/events').set('X-Tenant', s.tenantB.slug);
+        expect(other.body.data.map((e: any) => e.slug)).not.toContain(slug);
+
+        await owner.post(`/forms/${formId}/status`, { status: 'closed' });
+        const closed = await request(app).get('/api/v2/public/events').set('X-Tenant', s.tenantA.slug);
+        expect(closed.body.data.find((e: any) => e.slug === slug)).toMatchObject({ availability: 'closed', openFormId: null });
+    });
+
     it('evento y formulario abiertos, con productos y disponibilidad', async () => {
         const { formId, slug } = await openFejaForm();
         const ev = await request(app).get(`/api/v2/public/events/${slug}`).set('X-Tenant', s.tenantA.slug);
@@ -156,6 +175,13 @@ describe('registro', () => {
 
         const row = await db.selectFrom('email_messages').select(['status', 'sent_at']).where('to_email', '=', mail.to).executeTakeFirstOrThrow();
         expect(row.status).toBe('sent');
+    });
+
+    it('la confirmación indica que no puede pagar en línea si no hay Stripe', async () => {
+        const { formId } = await openFejaForm();
+        const code = (await register(formId, person())).body.data.publicCode;
+        const res = await request(app).get(`/api/v2/public/registrations/${code}`).set('X-Tenant', s.tenantA.slug);
+        expect(res.body.data.canPayOnline).toBe(false);
     });
 
     it('la página de confirmación muestra el registro sin datos de contacto', async () => {

@@ -142,6 +142,12 @@ function parseValue(field: FormField, raw: unknown, items: Map<string, SchemaIte
             }
             throw new FieldError('invalid');
         }
+        case 'city_picker': {
+            if (typeof raw !== 'string') throw new FieldError('invalid');
+            const v = raw.replace(/\s+/g, ' ').trim();
+            if (v.length > 120) throw new FieldError('too_long');
+            return v;
+        }
         case 'item_variant': {
             const item = items.get(field.item);
             const code = String(raw).trim();

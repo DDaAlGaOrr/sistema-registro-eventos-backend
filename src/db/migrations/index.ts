@@ -1,6 +1,7 @@
 import type { Migration } from 'kysely';
 import * as m001 from './001_initial_schema';
 import * as m002 from './002_audit_logs_append_only';
+import * as m003 from './003_us_cities';
 
 /**
  * Lista explícita de migraciones (en orden). Al crear una nueva:
@@ -12,4 +13,5 @@ import * as m002 from './002_audit_logs_append_only';
 export const migrations: Record<string, Migration> = {
     '001_initial_schema': m001,
     '002_audit_logs_append_only': m002,
+    '003_us_cities': m003,
 };

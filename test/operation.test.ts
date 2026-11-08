@@ -48,7 +48,7 @@ const person = (o: Record<string, unknown>) => ({
     first_name: 'Persona', last_name: `Apellido ${uniq()}`, email: `p-${uniq()}@example.test`, phone: '6025550101',
     birth_date: '2008-04-02', gender: 'female', location: { state: 'AZ', conference_id: s.orgs.az }, city: 'Phoenix',
     church: { church_id: azChurch }, is_chaperone: false, wants_tshirt: false, wants_lunch: false,
-    emergency_name: 'Mamá', emergency_phone: '6025550000', emergency_relationship: 'Madre', ...o,
+    emergency_name: 'Mamá', emergency_phone: '6025550000', emergency_relationship: 'padres', ...o,
 });
 
 async function registerAs(key: string, fId: number, answers: Record<string, unknown>) {

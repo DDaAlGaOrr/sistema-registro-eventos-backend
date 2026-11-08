@@ -1,13 +1,14 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { AppError, catchAsync, parseId } from '../../middlewares/errorHandler';
-import { registerLimiter } from '../../middlewares/rateLimit';
+import { citiesLimiter, registerLimiter } from '../../middlewares/rateLimit';
 import { verifyCaptcha } from '../../core/captcha';
 import { getContext } from '../../core/request-context';
 import { requireTenant } from '../tenants/tenant.resolver';
 import { kickEmailWorker } from '../email/email-queue';
 import { createPublicRegistration, getPublicRegistration, retryCheckoutByCode } from '../registrations/public-registration.service';
-import { getPublicChurches, getPublicEvent, getPublicForm, getPublicLocations } from './public.service';
+import { citiesOfState } from './cities.service';
+import { getPublicChurches, getPublicEvent, getPublicForm, getPublicLocations, listPublicEvents } from './public.service';
 
 const registrationSchema = z.object({
     answers: z.record(z.unknown()),
@@ -21,6 +22,8 @@ export const publicRoutesV2 = Router();
 
 publicRoutesV2.use(requireTenant);
 
+publicRoutesV2.get('/events', catchAsync(async () => ({ code: 200, data: await listPublicEvents() })));
+
 publicRoutesV2.get('/events/:slug', catchAsync(async (req) => ({
     code: 200, data: await getPublicEvent(String(req.params.slug)),
 })));
@@ -30,6 +33,14 @@ publicRoutesV2.get('/forms/:formId', catchAsync(async (req) => ({
 })));
 
 publicRoutesV2.get('/locations', catchAsync(async () => ({ code: 200, data: await getPublicLocations() })));
+
+/** Sugerencias de ciudad del estado (código de 2 letras). */
+publicRoutesV2.get('/states/:code/cities', citiesLimiter, catchAsync(async (req, res) => {
+    const code = String(req.params.code);
+    if (!/^[A-Za-z]{2}$/.test(code)) throw new AppError(404, 'Estado no encontrado');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    return { code: 200, data: await citiesOfState(code) };
+}));
 
 publicRoutesV2.get('/conferences/:conferenceId/churches', catchAsync(async (req) => ({
     code: 200, data: await getPublicChurches(parseId(req.params.conferenceId, 'conferenceId')),

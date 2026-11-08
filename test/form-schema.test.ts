@@ -31,7 +31,7 @@ const fejaPerson = {
     is_chaperone: false,
     wants_tshirt: true, tshirt_size: 'M',
     wants_lunch: true, diet: 'vegan',
-    emergency_name: 'Mamá', emergency_phone: '6025550000', emergency_relationship: 'Madre',
+    emergency_name: 'Mamá', emergency_phone: '6025550000', emergency_relationship: 'padres',
 };
 
 describe('formulario FEJA 2026 (migrado de V1)', () => {
@@ -52,7 +52,7 @@ describe('formulario FEJA 2026 (migrado de V1)', () => {
         expect(res.value.items).toEqual([{ code: 'tshirt', variantCode: 'M' }, { code: 'lunch', variantCode: null }]);
         expect(res.value.answers).toEqual({
             city: 'Phoenix', is_chaperone: false, diet: 'vegan',
-            emergency_name: 'Mamá', emergency_phone: '6025550000', emergency_relationship: 'Madre',
+            emergency_name: 'Mamá', emergency_phone: '6025550000', emergency_relationship: 'padres',
         });
     });
 

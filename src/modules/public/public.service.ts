@@ -108,19 +108,44 @@ export async function publicItems(items: ItemView[]) {
     }));
 }
 
-export async function getPublicEvent(slug: string) {
-    const event = await findEventBySlug(slug);
+async function formsWithAvailability(event: PublicEvent) {
     const forms = await db.selectFrom('forms').selectAll()
         .where('event_id', '=', event.id).where('status', '!=', 'draft').where('published_version_id', 'is not', null)
         .orderBy('id').execute();
-    const withAvailability = await Promise.all(forms.map(async f => ({
+    return Promise.all(forms.map(async f => ({
         id: f.id,
         title: fromJson<I18nText>(f.title),
         opensAt: f.opens_at ? new Date(f.opens_at) : null,
         closesAt: f.closes_at ? new Date(f.closes_at) : null,
         availability: availabilityOf(f, event, await countActiveRegistrations(f.id)),
     })));
-    return { event, forms: withAvailability };
+}
+
+export async function getPublicEvent(slug: string) {
+    const event = await findEventBySlug(slug);
+    return { event, forms: await formsWithAvailability(event) };
+}
+
+/** Prioridad para resumir varios formularios en una sola etiqueta. */
+const AVAILABILITY_PRIORITY: Availability[] = ['open', 'not_open_yet', 'full', 'closed'];
+
+/**
+ * Página de inicio del cliente: sus eventos publicados o cerrados (no los
+ * archivados ni los borradores), con si se puede registrar alguien ahora.
+ */
+export async function listPublicEvents() {
+    const rows = await db.selectFrom('events').selectAll()
+        .where('tenant_id', '=', tenantId()).where('deleted_at', 'is', null)
+        .where('status', 'in', ['published', 'closed'])
+        .orderBy('starts_at', 'desc').execute();
+    return Promise.all(rows.map(async (row) => {
+        const event = toPublicEvent(row);
+        const forms = await formsWithAvailability(event);
+        const availability = AVAILABILITY_PRIORITY.find(a => forms.some(f => f.availability === a)) ?? 'closed';
+        // Con un solo formulario abierto el Front puede llevar directo al registro
+        const openForms = forms.filter(f => f.availability === 'open');
+        return { ...event, availability, openFormId: openForms.length === 1 ? openForms[0].id : null };
+    }));
 }
 
 export async function getPublicForm(formId: number) {
