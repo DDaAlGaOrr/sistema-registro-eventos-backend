@@ -112,7 +112,7 @@ Es la pieza de la que depende todo lo demás; va con pruebas desde el inicio.
 3. Versiones: editar = borrador; publicar = versión inmutable y la anterior pasa a `superseded`; auditoría `form.version_published` con el diff.
 4. Generador `schema_json → validador Zod` para las respuestas (respeta `visible_when` y `required`).
 
-## Paso 6 — Registro público (API)
+## Paso 6 — Registro público (API) ✅ Hecho
 
 1. `GET /public/events/:slug` → evento, formulario vigente, ítems, iglesias verificadas de cada asociación.
 2. `POST /public/events/:slug/registrations`:
