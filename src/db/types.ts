@@ -26,6 +26,18 @@ export interface UsStatesTable {
     name: string;
 }
 
+export interface UsCitiesTable {
+    id: Generated<number>;
+    state_id: number;
+    name: string;
+}
+
+export interface UsCitySyncsTable {
+    state_id: number;
+    synced_at: Date | string;
+    city_count: Defaulted<number>;
+}
+
 export interface OrganizationsTable {
     id: Generated<number>;
     parent_id: number | null;
@@ -339,6 +351,8 @@ export interface AuditLogsTable {
 
 export interface Database {
     us_states: UsStatesTable;
+    us_cities: UsCitiesTable;
+    us_city_syncs: UsCitySyncsTable;
     organizations: OrganizationsTable;
     organization_states: OrganizationStatesTable;
     tenants: TenantsTable;

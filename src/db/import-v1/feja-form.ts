@@ -33,7 +33,7 @@ export const FEJA_FORM_SCHEMA = {
                     ],
                 },
                 { key: 'location', type: 'state_conference_picker', required: true, label: t('Estado y asociación', 'State and conference') },
-                { key: 'city', type: 'text', required: true, label: t('Ciudad', 'City') },
+                { key: 'city', type: 'city_picker', required: true, label: t('Ciudad', 'City') },
                 { key: 'church', type: 'church_picker', allow_new: true, required: true, label: t('Iglesia', 'Church') },
                 {
                     key: 'is_chaperone', type: 'radio', required: true, label: t('¿Eres chaperón?', 'Are you a chaperone?'),
@@ -71,7 +71,18 @@ export const FEJA_FORM_SCHEMA = {
             fields: [
                 { key: 'emergency_name', type: 'text', required: true, label: t('Nombre', 'Name') },
                 { key: 'emergency_phone', type: 'phone', required: true, label: t('Teléfono', 'Phone') },
-                { key: 'emergency_relationship', type: 'text', required: true, label: t('Relación', 'Relationship') },
+                {
+                    // Mismas opciones y valores que V1 (contactos_emergencia.relacion)
+                    key: 'emergency_relationship', type: 'select', required: true, label: t('Relación con el contacto', 'Relationship to contact'),
+                    options: [
+                        { value: 'esposo(a)', label: t('Esposo(a)', 'Spouse') },
+                        { value: 'padres', label: t('Padres', 'Parents') },
+                        { value: 'hermano', label: t('Hermano(a)', 'Sibling') },
+                        { value: 'familia', label: t('Familiar', 'Relative') },
+                        { value: 'amigo', label: t('Amigo(a)', 'Friend') },
+                        { value: 'otro', label: t('Otro', 'Other') },
+                    ],
+                },
             ],
         },
     ],

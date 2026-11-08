@@ -26,6 +26,7 @@ import { ItemView, loadItems, toSchemaItems } from '../forms/forms.service';
 import { availabilityOf, loadPublicForm } from '../public/public.service';
 import { chargeableAccount, startCheckout } from '../payments/stripe.service';
 import { stripeConfigured } from '../payments/provider';
+import { canonicalCity } from '../public/cities.service';
 
 export interface PublicRegistrationInput {
     answers: Record<string, unknown>;
@@ -127,6 +128,10 @@ export async function createPublicRegistration(formId: number, input: PublicRegi
     const fullName = `${core.first_name} ${core.last_name}`;
     const answers: Record<string, unknown> = { ...v.answers };
     if (v.location) answers.state = v.location.stateCode;
+    // Una sola escritura por ciudad: "phoenix " → "Phoenix" (si está en el catálogo)
+    for (const field of fields.filter(f => f.type === 'city_picker')) {
+        if (typeof answers[field.key] === 'string') answers[field.key] = await canonicalCity(v.location?.stateCode, answers[field.key] as string);
+    }
 
     // ── 5. Guardar (con bloqueos para cupo y existencias) ──────────────
     const saved = await db.transaction().execute(async (trx) => {
@@ -302,6 +307,7 @@ export async function getPublicRegistration(publicCode: string) {
             'r.id', 'r.public_code', 'r.first_name', 'r.status', 'r.payment_status', 'r.total_cents', 'r.paid_cents',
             'r.checked_in_at', 'r.locale', 'r.created_at',
             'e.name as event_name', 'e.starts_at', 'e.ends_at', 'e.timezone', 'e.venue', 'f.settings', 'f.currency',
+            'f.payments_enabled', 'f.allow_online_payment',
         ])
         .where('r.public_code', '=', publicCode).where('r.tenant_id', '=', tenant.id).where('r.deleted_at', 'is', null)
         .executeTakeFirst();
@@ -313,6 +319,11 @@ export async function getPublicRegistration(publicCode: string) {
         .select(['fi.code', 'fi.name', 'v.code as variant_code', 'v.label as variant_label', 'ri.unit_price_cents', 'ri.payment_status'])
         .where('ri.registration_id', '=', r.id).execute();
 
+    // ¿Puede pagar ahora con tarjeta? (formulario con pago en línea, Stripe listo y algo pendiente)
+    const canPayOnline = !!r.payments_enabled && !!r.allow_online_payment && r.status !== 'cancelled'
+        && ['unpaid', 'partially_paid'].includes(r.payment_status)
+        && stripeConfigured() && !!(await chargeableAccount(tenant.id));
+
     return {
         publicCode: r.public_code,
         firstName: r.first_name,
@@ -321,6 +332,7 @@ export async function getPublicRegistration(publicCode: string) {
         totalCents: r.total_cents,
         paidCents: r.paid_cents,
         currency: r.currency,
+        canPayOnline,
         checkedIn: !!r.checked_in_at,
         locale: r.locale,
         createdAt: new Date(r.created_at),

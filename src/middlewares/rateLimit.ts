@@ -27,6 +27,16 @@ export const accountLimiter = rateLimit({
     message: limitMessage('Demasiadas solicitudes. Intenta de nuevo en 15 minutos.'),
 });
 
+/** Sugerencias de ciudad: se piden al elegir estado; el límite solo frena abusos. */
+export const citiesLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    limit: 120,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    skip,
+    message: limitMessage('Demasiadas solicitudes. Intenta de nuevo en unos minutos.'),
+});
+
 /**
  * Registro público. Es generoso a propósito: un líder puede registrar
  * a varios jóvenes desde el mismo teléfono o el wifi de la iglesia.

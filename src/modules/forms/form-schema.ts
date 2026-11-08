@@ -73,6 +73,8 @@ export const fieldSchema = z.discriminatedUnion('type', [
     // Campos de sistema
     z.object({ ...base, type: z.literal('state_conference_picker') }).strict(),
     z.object({ ...base, type: z.literal('church_picker'), allow_new: z.boolean().default(true) }).strict(),
+    // Texto con sugerencias de ciudades del estado elegido (valor: texto normalizado)
+    z.object({ ...base, type: z.literal('city_picker') }).strict(),
     z.object({ ...base, type: z.literal('item_toggle'), item: keySchema }).strict(),
     z.object({ ...base, type: z.literal('item_variant'), item: keySchema }).strict(),
 ]);
@@ -131,6 +133,7 @@ export function validateFormSchema(schema: FormSchema, items: SchemaItem[], opts
     const itemByCode = new Map(items.map(i => [i.code, i]));
     let pickerSeen = false;
     let churchSeen = false;
+    let citySeen = false;
     let total = 0;
 
     schema.steps.forEach((step, si) => {
@@ -196,6 +199,11 @@ export function validateFormSchema(schema: FormSchema, items: SchemaItem[], opts
                     if (churchSeen) add(fp, 'Solo puede haber un selector de iglesia');
                     if (!pickerSeen) add(fp, 'El selector de iglesia necesita antes el selector de estado/asociación');
                     churchSeen = true;
+                    break;
+                case 'city_picker':
+                    if (citySeen) add(fp, 'Solo puede haber un selector de ciudad');
+                    if (!pickerSeen) add(fp, 'El selector de ciudad necesita antes el selector de estado/asociación');
+                    citySeen = true;
                     break;
                 case 'item_toggle':
                 case 'item_variant': {

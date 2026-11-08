@@ -150,14 +150,15 @@ Es la pieza de la que depende todo lo demás; va con pruebas desde el inicio.
 4. Panel admin también bilingüe.
 5. Borrar servicios mock (`dashboard.json`, `logs.json`, `registered.json`) y tipos de rol duplicados.
 
-## Paso 10 — Formulario público dinámico (Front)
+## Paso 10 — Formulario público dinámico (Front) ✅ Hecho
 
 1. `DynamicFormComponent`: construye los `FormGroup` desde `schema_json`, muestra/oculta por `visible_when`, textos según idioma.
 2. Componentes de campo: texto, número, fecha, checkbox, radio, select, consentimiento, selector estado→asociación, selector de iglesia con "no está en la lista", producto + variante.
 3. Paso de resumen generado automáticamente, con total a pagar.
 4. Pago: redirección a Stripe Checkout o "pagaré en efectivo"; páginas de éxito/cancelado.
 5. Confirmación con QR descargable.
-6. Reemplaza los componentes fijos `step1` a `step5`.
+6. Reemplaza los componentes fijos `step1` a `step5`. ✅ Se retiró el formulario de V1; los enlaces viejos (`/registro/2`) llevan al inicio del cliente.
+7. Pendiente: captcha (Turnstile) en el formulario; solo hace falta si se activa en la API.
 
 ## Paso 11 — Vistas admin consolidadas (Front)
 
