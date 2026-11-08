@@ -260,6 +260,10 @@ describe('reportes, exportación y actividad', () => {
         expect(r.byConference.find((c: any) => c.id === s.orgs.az).registrations).toBe(3);
         const tshirt = r.items.find((i: any) => i.code === 'tshirt');
         expect(Object.fromEntries(tshirt.variants.map((v: any) => [v.variant, v.total]))).toEqual({ M: 2, L: 1 });
+        // En el orden en que se definieron las tallas (M antes que L), no alfabético
+        expect(tshirt.variants.map((v: any) => v.variant)).toEqual(['M', 'L']);
+        // Cada talla trae su etiqueta para mostrarla en Logística
+        expect(tshirt.variants.find((v: any) => v.variant === 'M').label).toEqual({ es: expect.any(String), en: expect.any(String) });
         const diet = r.answers.find((a: any) => a.key === 'diet');
         expect(Object.fromEntries(diet.counts.map((c: any) => [c.value, c.count]))).toMatchObject({ vegan: 1, vegetarian: 1, regular: 1 });
         expect(r.daily.reduce((n: number, d: any) => n + d.count, 0)).toBe(5);
