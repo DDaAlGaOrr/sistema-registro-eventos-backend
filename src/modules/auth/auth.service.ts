@@ -66,7 +66,7 @@ export async function loadAuthInfo(userId: number, tenant: TenantInfo | undefine
     };
 }
 
-async function issueSession(auth: AuthInfo, tenant: TenantInfo | undefined): Promise<Session> {
+export async function issueSession(auth: AuthInfo, tenant: TenantInfo | undefined): Promise<Session> {
     const refreshToken = newRefreshToken();
     const ctx = getContext();
     await db.insertInto('user_tokens').values({

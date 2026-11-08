@@ -85,7 +85,7 @@ Se hace sobre el código actual porque estas piezas pasan casi tal cual a V2.
 3. Script de migración FEJA (Anexo B del esquema), en modo prueba sobre una copia del dump.
 4. Verificación automática: conteos por tabla, registros con playera/comida pagada, totales en dólares.
 
-## Paso 3 — Núcleo: autenticación, clientes, permisos y auditoría
+## Paso 3 — Núcleo: autenticación, clientes, permisos y auditoría ✅ Hecho
 
 Es la pieza de la que depende todo lo demás; va con pruebas desde el inicio.
 
@@ -96,12 +96,14 @@ Es la pieza de la que depende todo lo demás; va con pruebas desde el inicio.
 5. `audit.record(trx, {...})` + helper `diff(antes, después)`; se llama dentro de la transacción del cambio.
 6. Pruebas de aislamiento: un usuario del cliente A nunca lee ni modifica datos del cliente B; un viewer con alcance AZ no ve registros de CA.
 
-## Paso 4 — Administración básica
+## Paso 4 — Administración básica ✅ Hecho
 
 1. Organizaciones: árbol del cliente; iglesias pendientes → aprobar, editar o fusionar (al fusionar se reasignan los registros y se audita).
 2. Usuarios del cliente: invitar (correo con enlace), recuperar contraseña, cambiar rol/alcance, desactivar.
 3. Eventos: CRUD, estados draft/published/closed/archived, zona horaria.
 4. Marca del cliente: logo, colores, remitente.
+5. Panel de plataforma: alta de clientes (invita a su owner), suspender, catálogo de uniones y asociaciones.
+6. Pendiente para cuando un cliente pida dominio propio: CORS para `tenant_domains` y `TRUST_PROXY` configurable (rewrite de Vercel).
 
 ## Paso 5 — Formularios dinámicos (API)
 

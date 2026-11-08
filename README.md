@@ -93,6 +93,37 @@ arma los cambios campo por campo.
 | `GET /api/v2/events` | Eventos que el usuario puede ver |
 | `GET /api/v2/events/:id/registrations?page&pageSize` | Registros paginados, filtrados por alcance |
 
+**Administración** (Paso 4). Todo cambio queda en `audit_logs` con antes y
+después. Un owner limitado a una asociación solo administra lo de su rama.
+
+| Endpoint | Permiso | Qué hace |
+|---|---|---|
+| `POST /api/v2/auth/invitation/accept` | público | `{ token, password }` crea la contraseña e inicia sesión |
+| `POST /api/v2/auth/password/forgot` | público | `{ email }` manda enlace (misma respuesta exista o no) |
+| `POST /api/v2/auth/password/reset` | público | `{ token, password }` cambia la contraseña y cierra todas las sesiones |
+| `GET /api/v2/users` | users.manage | Miembros del cliente |
+| `POST /api/v2/users/invite` | users.manage | `{ email, name, role, scopeOrganizationId? }` |
+| `POST /api/v2/users/:id/resend-invitation` | users.manage | Reenvía la invitación pendiente |
+| `PATCH /api/v2/users/:id` | users.manage | `{ role?, scopeOrganizationId?, isActive? }` (siempre queda un owner) |
+| `GET /api/v2/organizations/tree` | lectura | Árbol unión → asociaciones → iglesias |
+| `GET/POST /api/v2/organizations/churches` | organizations.manage | Listar (filtros `status`, `conferenceId`, `q`) / crear |
+| `PATCH /api/v2/organizations/churches/:id` | organizations.manage | Editar, aprobar (`status: verified`) o desactivar |
+| `POST /api/v2/organizations/churches/:id/merge` | organizations.manage | `{ intoId }` fusiona un duplicado (mueve los registros) |
+| `GET /api/v2/events/:id` | lectura | Detalle del evento |
+| `POST /api/v2/events`, `PATCH /api/v2/events/:id` | events.manage | Crear / editar (`name` y `description` en `{es, en}`) |
+| `POST /api/v2/events/:id/status` | events.manage | draft → published → closed; cualquiera → archived |
+| `DELETE /api/v2/events/:id` | events.manage | Solo sin registros (si no, archivar) |
+| `GET /api/v2/tenant/public` | público | Marca del cliente (login y formulario) |
+| `GET/PATCH /api/v2/tenant/settings` | tenant.settings | Nombre, idioma, zona horaria, logo, colores, remitente |
+| `GET/POST /api/v2/platform/tenants` | admin de plataforma | Listar / dar de alta un cliente (invita a su owner) |
+| `PATCH /api/v2/platform/tenants/:id/status` | admin de plataforma | Activar / suspender |
+| `GET/POST /api/v2/platform/organizations` | admin de plataforma | Catálogo de uniones y asociaciones |
+
+**Correos.** Sin `EMAIL_USER`/`EMAIL_PASS` no se envían: el contenido (con el
+enlace) se escribe en el log, para probar invitaciones en local. Los enlaces
+apuntan a `FRONT_URL_TEMPLATE`. En `email_messages` queda el registro de cada
+envío, sin el cuerpo (los enlaces llevan tokens).
+
 ## CI
 
 GitHub Actions corre typecheck, pruebas y build contra MariaDB 10.4, MySQL 8.4

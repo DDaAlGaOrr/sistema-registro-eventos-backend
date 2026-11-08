@@ -2,6 +2,7 @@ import { Kysely, MysqlDialect } from 'kysely';
 import mysql from 'mysql2/promise';
 import { createPool } from 'mysql2';
 import { createMigrator, assertMigrationResult } from '../src/db/migrator';
+import { runSeeds } from '../src/db/seeds/seed';
 import { TEST_DB_NAME, testDbConnection } from './test-db';
 
 /**
@@ -24,6 +25,8 @@ export default async function setup() {
             assertMigrationResult(await migrator.migrateDown());
         }
         assertMigrationResult(await migrator.migrateToLatest());
+        // Catálogo base (estados, Pacific Union), igual que en un entorno real
+        await runSeeds(db);
     } finally {
         await db.destroy();
     }
