@@ -181,6 +181,28 @@ Anexo A de `docs/v2/schema-propuesta.sql`):
 - Captcha opcional con Cloudflare Turnstile (`TURNSTILE_SECRET_KEY`).
 - El pago en línea responde "todavía no disponible" hasta el Paso 8 (Stripe).
 
+**Operación del evento** (Paso 7). Todo respeta el alcance: un usuario de
+una asociación solo ve y opera los registros de su asociación en eventos de
+la Unión. Lista, reporte y CSV comparten la misma regla
+(`registrationConditions` en `registrations.repository.ts`).
+
+| Endpoint | Permiso | Qué hace |
+|---|---|---|
+| `GET /api/v2/events/:id/registrations` | lectura | Paginada. Filtros: `q` (nombre, correo, teléfono o código), `conferenceId`, `churchId`, `status`, `paymentStatus`, `checkedIn`, `itemCode` + `variantCode`, `createdFrom`/`createdTo`, `deleted=only` (papelera); `sort`, `order` |
+| `GET /api/v2/events/:id/registrations/export` | lectura | CSV (mismos filtros, `locale`); se audita |
+| `GET /api/v2/events/:id/report` | lectura | Totales, por estado/pago/género/asociación/iglesia/día, productos por talla (pagados, pendientes, entregados), respuestas con opciones, cobros por método |
+| `GET /api/v2/events/:id/activity?after=` | lectura | Actividad reciente con cursor (para refrescar el panel) |
+| `GET /api/v2/events/:id/checkin/:publicCode` | checkin.write | Al escanear: quién es, qué pidió, cuánto debe, si ya entró |
+| `POST /api/v2/events/:id/checkin` | checkin.write | `{ publicCode }` → `checked_in` o `already_checked_in` (un solo check-in aunque escaneen a la vez) |
+| `GET /api/v2/registrations/:id` | lectura | Detalle completo (respuestas con sus etiquetas, productos, pagos, check-in) |
+| `PATCH /api/v2/registrations/:id` | registrations.update | Datos, asociación/iglesia y respuestas (validadas con el formulario); auditoría con antes/después |
+| `PATCH /api/v2/registrations/:id/items/:itemId` | registrations.update | Cambiar talla (respeta existencias) |
+| `DELETE /api/v2/registrations/:id` / `POST .../restore` | registrations.delete | Papelera (borrado lógico con motivo y copia en la auditoría) / restaurar |
+| `POST`/`DELETE /api/v2/registrations/:id/checkin` | checkin.write | Check-in manual / deshacer |
+| `POST`/`DELETE /api/v2/registrations/:id/items/:itemId/delivery` | checkin.write | Entregar playera / canjear comida (solo si está pagado) / deshacer |
+| `GET /api/v2/registrations/:id/history` | audit.read | Historial del registro |
+| `GET /api/v2/audit` | audit.read (sin alcance) | Log del cliente con filtros (`eventId`, `entityType`, `entityId`, `actorUserId`, `action`, `from`, `to`) |
+
 **Correos.** Sin `EMAIL_USER`/`EMAIL_PASS` no se envían: el contenido (con el
 enlace) se escribe en el log, para probar invitaciones en local. Los enlaces
 apuntan a `FRONT_URL_TEMPLATE`. En `email_messages` queda el registro de cada

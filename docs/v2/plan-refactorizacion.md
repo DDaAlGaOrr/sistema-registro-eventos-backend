@@ -124,14 +124,14 @@ Es la pieza de la que depende todo lo demás; va con pruebas desde el inicio.
 3. Captcha opcional (Cloudflare Turnstile) y rate limit por IP.
 4. Worker de correos: procesa `email_messages`, reintenta, plantillas `{es,en}` con la marca del cliente y el QR (`public_code`).
 
-## Paso 7 — Operación del evento (API)
+## Paso 7 — Operación del evento (API) ✅ Hecho
 
 1. Registros: lista paginada y filtrada en el servidor (búsqueda, asociación, iglesia, estatus de pago, check-in), detalle, edición con diff auditado, borrado lógico.
 2. Check-in por `public_code` (QR) o manual; deshacer; responde en una sola llamada lo que staff necesita ver (productos pagados/pendientes, si ya entró).
 3. Entregas: marcar playera entregada / comida canjeada.
 4. Reportes en una consulta cada uno: KPIs, registros por semana, por asociación, tallas (pagadas/pendientes/entregadas), dietas, ingresos por método.
 5. Exportación CSV/PDF desde el servidor (respeta alcance).
-6. Tiempo real: SSE autenticado por evento (o polling cada 30 s si es más simple en Railway).
+6. Tiempo real: se eligió **consulta periódica** (`GET /events/:id/activity?after=`) en lugar de SSE: funciona igual detrás de los proxies de Vercel/Railway y no requiere mandar el token en la URL.
 
 ## Paso 8 — Pagos (API)
 
