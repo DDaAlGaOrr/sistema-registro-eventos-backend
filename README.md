@@ -203,6 +203,45 @@ la Unión. Lista, reporte y CSV comparten la misma regla
 | `GET /api/v2/registrations/:id/history` | audit.read | Historial del registro |
 | `GET /api/v2/audit` | audit.read (sin alcance) | Log del cliente con filtros (`eventId`, `entityType`, `entityId`, `actorUserId`, `action`, `from`, `to`) |
 
+**Pagos** (Paso 8). Cada movimiento es un registro en `payments` (con sus
+conceptos en `payment_items`); total, pagado y estado del registro se
+recalculan siempre desde ahí (`recalcRegistration`), nunca a mano.
+
+| Endpoint | Permiso | Qué hace |
+|---|---|---|
+| `POST /api/v2/registrations/:id/payments` | payments.write | Pago manual `{ method: cash\|check\|zelle\|other, itemIds?, reference?, notes? }` (sin `itemIds` = todo lo pendiente) |
+| `POST /api/v2/payments/:id/void` | payments.write | Anula un pago manual capturado por error |
+| `POST /api/v2/payments/:id/refund` | payments.write | Reembolso total o parcial `{ amountCents?, reason }` (con tarjeta se hace en Stripe) |
+| `GET /api/v2/events/:id/payments` | lectura | Movimientos con totales cobrado / reembolsado / neto |
+| `GET /api/v2/payments/stripe/account` | tenant.settings | Estado de la cuenta de Stripe del cliente |
+| `POST /api/v2/payments/stripe/connect` | tenant.settings | Crea la cuenta conectada y da el enlace de alta en Stripe |
+| `POST /api/v2/payments/stripe/refresh` | tenant.settings | Consulta el estado directo a Stripe |
+| `POST /api/v2/public/registrations/:code/checkout` | público | Pagar con tarjeta (reintento o después de elegir efectivo) |
+| `POST /api/v2/webhooks/stripe` | firma de Stripe | Webhook de Connect |
+
+- **Stripe Connect (cuentas Standard):** cada cliente conecta su cuenta y el
+  dinero le llega directo; la plataforma no guarda llaves del cliente.
+- Con tarjeta el registro queda `pending_payment` (aparta su lugar) y recibe
+  la URL de Checkout. Al pagar, el webhook lo confirma y manda el correo; si
+  la sesión vence sin pago, el registro se cancela y libera el lugar.
+- El webhook verifica la firma y es idempotente (`stripe_webhook_events`).
+  Eventos: `checkout.session.completed`, `checkout.session.expired`,
+  `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`,
+  `charge.refunded`, `account.updated`.
+
+**Probar Stripe en local (modo prueba):**
+1. En tu cuenta de Stripe, activa el **modo de prueba** y habilita **Connect**
+   (Settings → Connect).
+2. Copia la llave secreta de prueba (`sk_test_...`) a `STRIPE_SECRET_KEY`.
+3. Instala la [Stripe CLI](https://stripe.com/docs/stripe-cli) y corre
+   `stripe listen --forward-connect-to localhost:3000/api/v2/webhooks/stripe`;
+   copia el `whsec_...` que imprime a `STRIPE_WEBHOOK_SECRET`.
+4. Como owner: `POST /api/v2/payments/stripe/connect`, abre el enlace y
+   completa el alta de prueba. Luego activa `allowOnlinePayment` en el formulario.
+5. Paga con la tarjeta de prueba `4242 4242 4242 4242` (cualquier fecha futura y CVC).
+6. En producción, crea el webhook en el dashboard ("Eventos en cuentas
+   conectadas") apuntando a `https://api.<tu dominio>/api/v2/webhooks/stripe`.
+
 **Correos.** Sin `EMAIL_USER`/`EMAIL_PASS` no se envían: el contenido (con el
 enlace) se escribe en el log, para probar invitaciones en local. Los enlaces
 apuntan a `FRONT_URL_TEMPLATE`. En `email_messages` queda el registro de cada

@@ -56,6 +56,13 @@ const envSchema = z.object({
     EMAIL_QUEUE_INTERVAL_SECONDS: z.coerce.number().int().positive().default(15),
     // Captcha del registro público (Cloudflare Turnstile). Vacío = sin captcha.
     TURNSTILE_SECRET_KEY: z.string().optional().transform(v => v || undefined),
+
+    // Stripe (plataforma con Connect). Vacío = cobro en línea deshabilitado.
+    STRIPE_SECRET_KEY: z.string().optional().transform(v => v || undefined),
+    // Secreto del webhook de Connect ("eventos en cuentas conectadas")
+    STRIPE_WEBHOOK_SECRET: z.string().optional().transform(v => v || undefined),
+    // Cuánto dura abierta una sesión de pago (Stripe exige entre 30 min y 24 h)
+    STRIPE_CHECKOUT_EXPIRES_MINUTES: z.coerce.number().int().min(30).max(1440).default(60),
 });
 
 const parsed = envSchema.safeParse(process.env);

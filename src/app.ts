@@ -11,6 +11,7 @@ import { catchAsync, errorHandler, notFoundHandler } from './middlewares/errorHa
 import { getContext, requestContextMiddleware } from './core/request-context';
 import { logger, sanitizeUrl } from './core/logger';
 import { db } from './db/client';
+import { handleStripeWebhook } from './modules/payments/stripe-webhooks';
 
 /**
  * Orígenes permitidos: la lista de CORS_ORIGINS y cualquier subdominio de
@@ -58,6 +59,11 @@ export function createApp(): Express {
         credentials: true,
         exposedHeaders: ['X-Request-Id'],
     }));
+    // Webhook de Stripe: necesita el cuerpo crudo para verificar la firma (va antes de express.json)
+    app.post('/api/v2/webhooks/stripe', express.raw({ type: '*/*', limit: '1mb' }), catchAsync(async (req) => ({
+        code: 200, data: await handleStripeWebhook(req.body as Buffer, req.header('stripe-signature')),
+    })));
+
     app.use(express.json({ limit: '100kb' }));
     app.use(cookieParser());
 
