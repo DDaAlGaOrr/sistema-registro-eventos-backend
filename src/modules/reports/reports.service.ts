@@ -80,16 +80,16 @@ export async function getEventReport(eventId: number) {
         .innerJoin('registration_items as ri', 'ri.registration_id', 'r.id')
         .innerJoin('form_items as fi', 'fi.id', 'ri.item_id')
         .leftJoin('form_item_variants as fv', 'fv.id', 'ri.variant_id')
-        .select(['fi.code', 'fi.name', 'fv.code as variant', 'ri.payment_status',
+        .select(['fi.code', 'fi.name', 'fv.code as variant', 'fv.label as variant_label', 'fv.sort_order as variant_order', 'ri.payment_status',
             eb => eb.fn.countAll<number>().as('n'),
             eb => eb.fn.sum<number>(sql`CASE WHEN ri.delivered_at IS NOT NULL THEN 1 ELSE 0 END`).as('delivered'),
             eb => eb.fn.sum<number>('ri.unit_price_cents').as('cents')])
-        .groupBy(['fi.code', 'fi.name', 'fv.code', 'ri.payment_status']).execute());
+        .groupBy(['fi.code', 'fi.name', 'fv.code', 'fv.label', 'fv.sort_order', 'ri.payment_status']).execute());
     const itemReport = new Map<string, { code: string; name: I18nText; variants: Map<string, any> }>();
     for (const r of items) {
         const it = itemReport.get(r.code) ?? { code: r.code, name: fromJson<I18nText>(r.name), variants: new Map() };
         const key = r.variant ?? '';
-        const v = it.variants.get(key) ?? { variant: r.variant, total: 0, paid: 0, unpaid: 0, notRequired: 0, delivered: 0, cents: 0, paidCents: 0 };
+        const v = it.variants.get(key) ?? { variant: r.variant, label: r.variant_label ? fromJson<I18nText>(r.variant_label) : null, order: r.variant_order ?? 0, total: 0, paid: 0, unpaid: 0, notRequired: 0, delivered: 0, cents: 0, paidCents: 0 };
         const n = Number(r.n);
         v.total += n;
         v.delivered += Number(r.delivered ?? 0);
@@ -138,7 +138,11 @@ export async function getEventReport(eventId: number) {
         },
         byStatus, byPaymentStatus, byGender, byConference, byChurch,
         daily: [...daily.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, count]) => ({ date, count })),
-        items: [...itemReport.values()].map(i => ({ code: i.code, name: i.name, variants: [...i.variants.values()] })),
+        // Las variantes salen en el orden en que se definieron (XS, S, M…), no alfabético
+        items: [...itemReport.values()].map(i => ({
+            code: i.code, name: i.name,
+            variants: [...i.variants.values()].sort((a, b) => a.order - b.order).map(({ order: _order, ...v }) => v),
+        })),
         answers,
         paymentsByMethod: byMethod,
     };
