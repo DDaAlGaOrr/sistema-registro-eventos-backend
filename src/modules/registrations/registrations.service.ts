@@ -78,6 +78,10 @@ export async function getRegistrationDetail(registrationId: number, opts: { incl
         answers,
         // Etiquetas de los campos para mostrar las respuestas tal como se preguntaron
         answerLabels: Object.fromEntries(fields.filter(f => f.key in answers).map(f => [f.key, f.label])),
+        // Etiquetas de las opciones (radio, select, grupos): el panel muestra "Vegano" y no "vegan"
+        answerOptions: Object.fromEntries(fields
+            .filter((f): f is typeof f & { options: { value: unknown; label: I18nText }[] } => f.key in answers && 'options' in f && Array.isArray(f.options))
+            .map(f => [f.key, f.options.map(o => ({ value: o.value, label: o.label }))])),
         status: row.status,
         paymentStatus: row.payment_status,
         totalCents: row.total_cents,

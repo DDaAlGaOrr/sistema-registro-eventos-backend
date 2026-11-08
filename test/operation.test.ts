@@ -126,6 +126,10 @@ describe('detalle y edición', () => {
         expect(res.body.data).toMatchObject({ firstName: 'Ana', conference: { id: s.orgs.az }, totalCents: 600, paymentStatus: 'unpaid' });
         expect(res.body.data.answers.diet).toBe('vegan');
         expect(res.body.data.answerLabels.diet).toEqual({ es: 'Preferencia alimenticia', en: 'Dietary preference' });
+        // Las opciones traen su etiqueta para mostrarla en lugar del valor interno
+        expect(res.body.data.answerOptions.diet).toEqual(expect.arrayContaining([
+            expect.objectContaining({ value: 'vegan', label: expect.objectContaining({ es: expect.any(String), en: expect.any(String) }) }),
+        ]));
         expect((await viewerAz.get(`/registrations/${regs.dani.id}`)).status).toBe(404);
     });
 
